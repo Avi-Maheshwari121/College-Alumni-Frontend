@@ -1,86 +1,67 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { authService } from '../../services/authService';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import keycloak from "../../services/keycloak";
 
 export default function Login() {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    setReady(true);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await authService.login(formData);
-      navigate('/'); // Redirect to home/dashboard on success
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
-    } finally {
-      setLoading(false);
+    if (keycloak.authenticated) {
+      navigate("/");
     }
+  }, [navigate]);
+
+  const handleLogin = () => {
+    keycloak.login();
   };
+
+  const handleRegister = () => {
+    keycloak.register();
+  };
+
+  const handleLogout = () => {
+    keycloak.logout({
+      redirectUri: "http://localhost:5173/login"
+    });
+  };
+
+  if (!ready) return null;
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 border border-gray-100">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="mt-2 text-sm text-gray-600">Sign in to your alumni account</p>
-        </div>
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow">
 
-        {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm mb-4 text-center">
-            {error}
-          </div>
-        )}
+        <h2 className="text-3xl font-bold text-center mb-6">
+          Welcome Back
+        </h2>
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input
-              name="email"
-              type="email"
-              required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              value={formData.email}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              name="password"
-              type="password"
-              required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              value={formData.password}
-              onChange={handleChange}
-            />
-          </div>
+        <div className="space-y-4">
 
           <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            onClick={handleLogin}
+            className="w-full py-3 bg-blue-600 text-white rounded"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            Login
           </button>
-        </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-            Register here
-          </Link>
-        </p>
+          <button
+            onClick={handleRegister}
+            className="w-full py-3 border border-blue-600 text-blue-600 rounded"
+          >
+            Register
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full py-3 bg-red-500 text-white rounded"
+          >
+            Logout Existing Session
+          </button>
+
+        </div>
       </div>
     </div>
   );
