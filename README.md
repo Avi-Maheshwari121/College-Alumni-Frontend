@@ -1,16 +1,70 @@
-# React + Vite
+# JECRConnect - College Alumni Portal (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repository contains the frontend application for the JECRConnect college alumni portal, designed specifically as a containerized workload for our internal on-premise infrastructure. It bridges the gap between current students and alumni by providing a platform to discover career opportunities, attend networking events, and find mentors to guide professional journeys.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* **Framework:** [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
+* **Routing:** React Router v7
+* **Styling:** Tailwind CSS
+* **Authentication:** Keycloak (OIDC/OAuth2)
+* **API Client:** Axios
+* **Containerization & Orchestration:** Docker, Kubernetes
+* **CI/CD:** Jenkins
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **Secure Authentication:** User login and registration powered by Keycloak SSO.
+* **Campus Events:** Browse and host alumni events, reunions, and tech talks.
+* **Job Board:** Explore job openings and referrals posted directly by alumni. Create new job postings.
+* **Mentorship Program:** Connect with experienced graduates for career advice or volunteer to become a mentor.
+* **Responsive Design:** Fully responsive UI built with Tailwind CSS.
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Before running the application locally, ensure you have the following installed:
+
+* Node.js (v18 or higher recommended)
+* npm or yarn
+* A running Keycloak instance configured with the `Alumni-Portal-External` realm.
+* A running backend API service.
+
+## Getting Started (Local Development)
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/Avi-Maheshwari121/College-Alumni-Frontend.git](https://github.com/Avi-Maheshwari121/College-Alumni-Frontend.git)
+    cd College-Alumni-Frontend
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configure Environment Variables:**
+    Create a `.env` file in the root directory and configure the backend API URL. By default, it falls back to `http://localhost:30018/api/v1`.
+    ```env
+    VITE_API_URL=http://your-backend-url/api/v1
+    ```
+    *Note: Update `src/services/keycloak.js` with your Keycloak realm, client ID, and URL if they differ from the defaults.*
+
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+    The application will be available at `http://localhost:5173`.
+
+## On-Premise Deployment
+
+This workload is actively deployed and managed within our internal infrastructure. 
+
+**Target Environment:**
+* **Cluster:** Rancher-managed RKE2 
+* **Infrastructure:** Bare-metal ProLiant servers
+
+**Deployment Steps:**
+You can deploy the application to the cluster using the provided manifest file (`frontend.yml`).
+
+```bash
+kubectl apply -f frontend.yml
