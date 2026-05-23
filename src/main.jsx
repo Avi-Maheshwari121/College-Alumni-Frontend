@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 import keycloak from "./services/keycloak.js";
+import api from "./services/api.js";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -34,6 +35,17 @@ keycloak
      */
     window.keycloak = keycloak;
 
+    if (authenticated) {
+      api
+        .get("/auth/me")
+        .then((res) => {
+          console.log("Mongo user synced:", res.data);
+        })
+        .catch((err) => {
+          console.error("Sync failed:", err);
+        });
+    }
+
     console.log("Authenticated:", authenticated);
 
     /**
@@ -49,7 +61,6 @@ keycloak
         })
         .catch(() => {
           console.log("Session expired");
-
           keycloak.logout({
             redirectUri: window.location.origin,
           });
