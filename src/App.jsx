@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 import Navbar from "./components/Navbar";
 
@@ -22,7 +23,7 @@ import keycloak from "./services/keycloak";
 function ProtectedRoute({ children }) {
   if (!keycloak.authenticated) {
     keycloak.login({
-      redirectUri: window.location.href
+      redirectUri: window.location.href,
     });
 
     return null;
@@ -41,9 +42,7 @@ function App() {
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600 text-lg font-medium">
-          Loading...
-        </div>
+        <div className="text-gray-600 text-lg font-medium">Loading...</div>
       </div>
     );
   }
@@ -51,20 +50,18 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-gray-50">
-
         {/* Navbar */}
         <Navbar />
 
         {/* Main */}
         <main className="flex-grow">
-
           <Routes>
-
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<EventList />} />
             <Route path="/jobs" element={<JobList />} />
             <Route path="/mentorship" element={<MentorshipList />} />
+            <Route path="/admin" element={<AdminDashboard />} />
 
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
@@ -107,19 +104,13 @@ function App() {
                 </div>
               }
             />
-
           </Routes>
-
         </main>
 
         {/* Footer */}
         <footer className="bg-white border-t border-gray-200 py-8 text-center text-gray-500 text-sm">
-          <p>
-            © {new Date().getFullYear()} JECRConnect.
-            All rights reserved.
-          </p>
+          <p>© {new Date().getFullYear()} JECRConnect. All rights reserved.</p>
         </footer>
-
       </div>
     </Router>
   );

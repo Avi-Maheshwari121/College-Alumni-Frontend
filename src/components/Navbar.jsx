@@ -71,6 +71,13 @@ export default function Navbar() {
                 Mentorship
               </Link>
 
+              <Link
+                to="/admin"
+                className="text-gray-600 hover:text-blue-600 inline-flex items-center px-1 pt-1 text-sm font-medium"
+              >
+                Admin
+              </Link>
+
             </div>
           </div>
 
