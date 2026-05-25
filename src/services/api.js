@@ -79,13 +79,21 @@ api.interceptors.response.use(
     /**
      * Unauthorized
      */
+   /**
+     * Unauthorized
+     */
     if (status === 401) {
-      try {
-        await keycloak.login();
-      } catch (err) {
-        console.error(
-          "Re-login failed"
-        );
+      // Do NOT trigger a login loop if the request was checking the user profile
+      const isAuthMeRequest = error.config && error.config.url && error.config.url.includes('/auth/me');
+      
+      if (!isAuthMeRequest) {
+        try {
+          await keycloak.login();
+        } catch (err) {
+          console.error("Re-login failed");
+        }
+      } else {
+        console.warn("User authenticated in Keycloak, but not found in backend DB.");
       }
     }
 

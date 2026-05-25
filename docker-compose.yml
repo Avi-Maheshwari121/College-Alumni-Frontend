@@ -1,0 +1,22 @@
+# services:
+#   frontend:
+#     build: .
+#     container_name: alumni-frontend
+#     ports:
+#       - "5173:5173"
+#     environment:
+#       - VITE_API_URL=http://localhost:8000/api/v1
+#     # Appending --host ensures Vite binds to all network interfaces inside the Docker container
+#     command: npm run dev -- --host
+
+services:
+  frontend:
+    build: 
+      context: .
+      target: builder    # <--- This tells Docker to stop at Stage 1 (Node.js)
+    container_name: alumni-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+    command: npm run dev -- --host
