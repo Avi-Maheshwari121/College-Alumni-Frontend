@@ -1,18 +1,9 @@
 import api from "./api";
 
 export const adminService = {
-  getPendingUsers: async () => {
-    const res = await api.get("/admin/users/pending");
-    return res.data;
-  },
-
-  approveUser: async (id) => {
-    const res = await api.patch(`/admin/users/${id}/approve`);
-    return res.data;
-  },
-
-  rejectUser: async (id) => {
-    const res = await api.patch(`/admin/users/${id}/reject`);
-    return res.data;
-  },
+  getPendingUsers: () => api.get("/admin/users/pending"),
+  getAllUsers: () => api.get("/admin/users/all"), // We need this to get all statuses!
+  approveUser: (id) => api.patch(`/admin/users/${id}/approve`),
+  rejectUser: (id) => api.patch(`/admin/users/${id}/reject`),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`), // The new delete route
 };

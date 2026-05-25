@@ -35,16 +35,16 @@ keycloak
      */
     window.keycloak = keycloak;
 
-    if (authenticated) {
-      api
-        .get("/auth/me")
-        .then((res) => {
-          console.log("Mongo user synced:", res.data);
-        })
-        .catch((err) => {
-          console.error("Sync failed:", err);
-        });
-    }
+    // if (authenticated) {
+    //   api
+    //     .get("/auth/me")
+    //     .then((res) => {
+    //       console.log("Mongo user synced:", res.data);
+    //     })
+    //     .catch((err) => {
+    //       console.error("Sync failed:", err);
+    //     });
+    // }
 
     console.log("Authenticated:", authenticated);
 
