@@ -6,18 +6,13 @@ import keycloak from "./keycloak";
  */
 
 const api = axios.create({
-  baseURL:
-    import.meta.env
-      .VITE_API_URL ||
-    "http://localhost:30018/api/v1",
-
+  // Change from hardcoded URL to a relative path
+  // /when testing on local computer inject this VITE_KEYCLOAK_URL in the .env file to make it work on the local machine like VITE_API_URL = localhost:8000/api/v1 tpyes..
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
   timeout: 15000,
-
   headers: {
-    "Content-Type":
-      "application/json",
-    Accept:
-      "application/json",
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 
