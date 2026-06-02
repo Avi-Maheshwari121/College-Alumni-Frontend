@@ -18,15 +18,15 @@ export default function Navbar() {
     }
   }, []);
 
-  const handleLogin = () => {
+ const handleLogin = () => {
     keycloak.login({
-      redirectUri: "http://localhost:5173/"
+      redirectUri: window.location.origin + "/"
     });
   };
 
   const handleLogout = () => {
     keycloak.logout({
-      redirectUri: "http://localhost:5173/"
+      redirectUri: window.location.origin + "/"
     });
   };
 

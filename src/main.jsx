@@ -21,14 +21,20 @@ root.render(
 /**
  * Keycloak Init
  */
-keycloak
-  .init({
+
+///FORCES A REDIRECT TO KEYCLOCK INSTANTLY
+// keycloak.init({
+//     onLoad: "login-required", // Forces a redirect to the login screen immediately
+//     checkLoginIframe: false,
+//     pkceMethod: "S256"
+// })
+
+keycloak.init({
     onLoad: "check-sso",
     checkLoginIframe: false,
     pkceMethod: "S256",
-    silentCheckSsoRedirectUri:
-      window.location.origin + "/silent-check-sso.html",
-  })
+    silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
+})
   .then((authenticated) => {
     /**
      * Global debug access
