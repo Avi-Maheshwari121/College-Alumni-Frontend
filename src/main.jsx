@@ -1,102 +1,47 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
-import "./index.css";
-import keycloak from "./services/keycloak.js";
-import api from "./services/api.js";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
+import keycloak from './services/keycloak';
+import { FlagProvider } from '@unleash/proxy-client-react';
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
 
-/**
- * Loading Screen
- */
-root.render(
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="text-lg font-medium text-gray-600">
-      Initializing Application...
-    </div>
-  </div>,
-);
+// Initialize Keycloak FIRST
+keycloak.init({
+  onLoad: 'check-sso',
+  checkLoginIframe: false 
+}).then((authenticated) => {
+  console.log("Authenticated:", authenticated);
 
-/**
- * Keycloak Init
- */
-keycloak
-  .init({
-    onLoad: "check-sso",
-    checkLoginIframe: false,
-    pkceMethod: "S256",
-    silentCheckSsoRedirectUri:
-      window.location.origin + "/silent-check-sso.html",
-  })
-  .then((authenticated) => {
-    /**
-     * Global debug access
-     */
-    window.keycloak = keycloak;
+  // 1. Check if the user has the admin role in Keycloak
+  const isAdmin = keycloak.realmAccess?.roles?.includes("admin");
 
-    // if (authenticated) {
-    //   api
-    //     .get("/auth/me")
-    //     .then((res) => {
-    //       console.log("Mongo user synced:", res.data);
-    //     })
-    //     .catch((err) => {
-    //       console.error("Sync failed:", err);
-    //     });
-    // }
+  // 2. Build the config WITH the user's context
+  const unleashConfig = {
+    url: 'http://localhost:4242/api/frontend',
+    clientKey: '*:development.0ef750b9b74b97fb2de47d726a48c6e354db72e764bc37421f255660', // Keep your working token!
+    refreshInterval: 5,
+    appName: 'alumni-frontend',
+    context: {
+      userId: keycloak.tokenParsed?.sub || 'anonymous',
+      sessionId: keycloak.sessionId || 'anonymous',
+      
+      // This is the magic bridge! It tells Unleash the user's role.
+      properties: {
+        role: isAdmin ? 'admin' : 'student' 
+      }
 
-    console.log("Authenticated:", authenticated);
+    }
+  };
 
-    /**
-     * Auto refresh token before expiry
-     */
-    setInterval(() => {
-      keycloak
-        .updateToken(60)
-        .then((refreshed) => {
-          if (refreshed) {
-            console.log("Token refreshed");
-          }
-        })
-        .catch(() => {
-          console.log("Session expired");
-          keycloak.logout({
-            redirectUri: window.location.origin,
-          });
-        });
-    }, 30000);
-
-    /**
-     * Auth lifecycle listeners
-     */
-    // keycloak.onAuthLogout = () => {
-    //   window.location.reload();
-    // };
-
-    // keycloak.onAuthSuccess = () => {
-    //   console.log("Login success");
-    // };
-
-    // keycloak.onTokenExpired = () => {
-    //   keycloak.updateToken(60);
-    // };
-
-    /**
-     * Render App
-     */
-    root.render(
-      <React.StrictMode>
+  // THEN render the App, completely wrapped in the FlagProvider
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <FlagProvider config={unleashConfig}>
         <App />
-      </React.StrictMode>,
-    );
-  })
-  .catch((error) => {
-    console.error("Keycloak init failed:", error);
-
-    root.render(
-      <div className="min-h-screen flex items-center justify-center bg-red-50 text-red-600 text-lg font-medium">
-        Failed to initialize authentication.
-      </div>,
-    );
-  });
+      </FlagProvider>
+    </React.StrictMode>
+  );
+}).catch((err) => {
+  console.error("Keycloak init failed:", err);
+});
