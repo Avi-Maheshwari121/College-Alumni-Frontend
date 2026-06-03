@@ -1,27 +1,33 @@
 import { useState, useEffect } from 'react';
 import { eventService } from '../../services/eventService';
-import { Link } from 'react-router-dom'; // Add to imports
+import api from '../../services/api'; // Import your API instance
+import { Link } from 'react-router-dom';
 
 export default function EventList() {
   const [events, setEvents] = useState([]);
+  const [role, setRole] = useState("student"); // Track the user's role
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchInitialData = async () => {
       try {
-        // Assuming your backend returns data inside a 'data' or 'events' property
-        // Adjust this depending on your actual API response structure
-        const res = await eventService.getAllEvents();
-        setEvents(res.data || res); 
+        // Fetch both events and the current user's profile concurrently
+        const [eventsRes, userRes] = await Promise.all([
+          eventService.getAllEvents(),
+          api.get("/auth/me")
+        ]);
+        
+        setEvents(eventsRes.data || eventsRes);
+        setRole(userRes.data?.data?.role || "student");
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch events');
+        setError(err.response?.data?.message || 'Failed to fetch data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvents();
+    fetchInitialData();
   }, []);
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading events...</div>;
@@ -31,9 +37,13 @@ export default function EventList() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Alumni Events</h1>
-        <Link to="/events/create" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-  Create Event
-</Link>
+        
+        {/* Conditionally render the button ONLY for admins and alumni */}
+        {(role === "admin" || role === "alumni") && (
+          <Link to="/events/create" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+            Create Event
+          </Link>
+        )}
       </div>
 
       {events.length === 0 ? (
@@ -45,7 +55,6 @@ export default function EventList() {
           {events.map((event) => (
             <div key={event._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
               <div className="h-48 bg-gray-200">
-                {/* Placeholder for event image */}
                 <img 
                   src={event.imageUrl || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80"} 
                   alt={event.title}

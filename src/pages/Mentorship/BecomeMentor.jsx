@@ -1,371 +1,185 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { mentorshipService } from "../../services/mentorshipService";
 
 export default function BecomeMentor() {
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [mentorData, setMentorData] = useState(null);
+  
+  // Form State
+  const [formData, setFormData] = useState({
+    expertise: "",
+    experience: "",
+    linkedinUrl: "",
+    maxStudents: 5
+  });
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [formData, setFormData] =
-    useState({
-      field: "",
-      bio: "",
-      headline: "",
-      company: "",
-      designation: "",
-      availability: "flexible",
-      sessionMode: "online",
-      city: "",
-    });
-
-  const [profileId, setProfileId] =
-    useState(null);
-
-  const [isEditMode, setIsEditMode] =
-    useState(false);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [pageLoading, setPageLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  /**
-   * Load existing profile
-   */
+  // 1. Check registration status on mount
   useEffect(() => {
-    const fetchProfile =
-      async () => {
-        try {
-          const res =
-            await mentorshipService.getMyProfile();
-
-          if (res?.data?.data) {
-            const mentor =
-              res.data.data;
-
-            setProfileId(
-              mentor._id
-            );
-
-            setIsEditMode(
-              true
-            );
-
-            setFormData({
-              field:
-                mentor.field ||
-                "",
-              bio:
-                mentor.bio ||
-                "",
-              headline:
-                mentor.headline ||
-                "",
-              company:
-                mentor.company ||
-                "",
-              designation:
-                mentor.designation ||
-                "",
-              availability:
-                mentor.availability ||
-                "flexible",
-              sessionMode:
-                mentor.sessionMode ||
-                "online",
-              city:
-                mentor.city ||
-                "",
-            });
-          }
-        } catch (err) {
-          /**
-           * no profile found
-           */
-        } finally {
-          setPageLoading(
-            false
-          );
-        }
-      };
-
-    fetchProfile();
-  }, []);
-
-  /**
-   * Handle input
-   */
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]:
-        e.target.value,
-    });
-  };
-
-  /**
-   * Submit
-   */
-  const handleSubmit =
-    async (e) => {
-      e.preventDefault();
-
-      setLoading(true);
-      setError("");
-
+    const fetchStatus = async () => {
       try {
-        if (isEditMode) {
-          await mentorshipService.updateMentorship(
-            profileId,
-            formData
-          );
-        } else {
-          await mentorshipService.createMentorship(
-            formData
-          );
+        const res = await mentorshipService.getMyDashboard();
+        if (res.success && res.data) {
+          setIsRegistered(true);
+          setMentorData(res.data);
         }
-
-        navigate(
-          "/mentorship"
-        );
       } catch (err) {
-        setError(
-          err.response?.data
-            ?.message ||
-            "Failed to save mentor profile."
-        );
+        // A 404 means they aren't registered yet, which is fine!
+        if (err.response?.status !== 404) {
+          console.error("Error fetching mentor status:", err);
+        }
       } finally {
         setLoading(false);
       }
     };
+    fetchStatus();
+  }, []);
 
-  if (pageLoading) {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitLoading(true);
+    setError("");
+
+    try {
+      await mentorshipService.registerMentor(formData);
+      // Reload the page to fetch the new status and switch to the Dashboard view
+      window.location.reload(); 
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to register. Please try again.");
+      setSubmitLoading(false);
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading your profile...</div>;
+
+  // --- STATE 1: ALREADY REGISTERED (Dashboard View) ---
+  if (isRegistered && mentorData) {
+    const { mentorProfile, enrolledStudents } = mentorData;
+    
     return (
-      <div className="max-w-2xl mx-auto py-12 text-center text-gray-500">
-        Loading...
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow p-6 mb-8 border-t-4 border-green-500">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">Mentor Dashboard</h1>
+            <span className="bg-green-100 text-green-800 px-4 py-1 rounded-full text-sm font-bold">
+              ✓ Registered Mentor
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600 mb-2">
+            <p><strong>Expertise:</strong> {mentorProfile.expertise}</p>
+            <p><strong>Experience:</strong> {mentorProfile.experience}</p>
+            <p><strong>LinkedIn:</strong> <a href={mentorProfile.linkedinUrl} className="text-blue-500 hover:underline" target="_blank" rel="noreferrer">View Profile</a></p>
+            <p><strong>Capacity:</strong> {enrolledStudents.length} / {mentorProfile.maxStudents} Students</p>
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Enrolled Students</h2>
+        {enrolledStudents.length === 0 ? (
+          <div className="bg-gray-50 p-6 rounded text-center text-gray-500 border border-gray-200">
+            You don't have any students enrolled yet. We will notify you when someone signs up!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {enrolledStudents.map((student) => (
+              <div key={student._id} className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                <p className="font-bold text-gray-800">{student.firstName} {student.lastName}</p>
+                <p className="text-sm text-gray-600">Batch: {student.batch || 'N/A'}</p>
+                <a href={`mailto:${student.email}`} className="text-sm text-blue-600 hover:underline mt-2 inline-block">
+                  {student.email}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="mt-8 text-center">
+          <Link to="/mentorship" className="text-blue-600 hover:underline">← Back to Mentorship Hub</Link>
+        </div>
       </div>
     );
   }
 
+  // --- STATE 2: NOT REGISTERED (Form View) ---
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Become a Mentor</h1>
+        <p className="text-gray-600 mb-6">Share your industry experience and guide the next generation of students.</p>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          {isEditMode
-            ? "Edit Mentor Profile"
-            : "Offer Mentorship"}
-        </h2>
+        {error && <div className="mb-4 text-red-600 bg-red-50 p-3 rounded">{error}</div>}
 
-        {error && (
-          <div className="bg-red-50 text-red-500 p-4 rounded-md mb-6">
-            {error}
-          </div>
-        )}
-
-        <form
-          onSubmit={
-            handleSubmit
-          }
-          className="space-y-6"
-        >
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Area of Expertise
-            </label>
-
+            <label className="block text-sm font-medium text-gray-700 mb-1">Core Expertise (e.g., Frontend, DevOps, Marketing)</label>
             <input
               type="text"
-              name="field"
+              name="expertise"
               required
-              value={
-                formData.field
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Cloud, Android, Backend..."
+              value={formData.expertise}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Headline
-            </label>
-
+            <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience / Current Role</label>
             <input
               type="text"
-              name="headline"
-              value={
-                formData.headline
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Helping students crack interviews"
+              name="experience"
+              required
+              placeholder="e.g., 3 Years as SDE at Google"
+              value={formData.experience}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Company
-            </label>
-
+            <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn Profile URL</label>
             <input
-              type="text"
-              name="company"
-              value={
-                formData.company
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              type="url"
+              name="linkedinUrl"
+              required
+              value={formData.linkedinUrl}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Designation
-            </label>
-
-            <input
-              type="text"
-              name="designation"
-              value={
-                formData.designation
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              City
-            </label>
-
-            <input
-              type="text"
-              name="city"
-              value={
-                formData.city
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Availability
-            </label>
-
+            <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Students to Mentor</label>
             <select
-              name="availability"
-              value={
-                formData.availability
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              name="maxStudents"
+              value={formData.maxStudents}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="flexible">
-                Flexible
-              </option>
-              <option value="weekdays">
-                Weekdays
-              </option>
-              <option value="weekends">
-                Weekends
-              </option>
-              <option value="evenings">
-                Evenings
-              </option>
+              <option value="1">1 Student</option>
+              <option value="2">2 Students</option>
+              <option value="5">5 Students</option>
+              <option value="10">10 Students</option>
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Session Mode
-            </label>
-
-            <select
-              name="sessionMode"
-              value={
-                formData.sessionMode
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="online">
-                Online
-              </option>
-              <option value="offline">
-                Offline
-              </option>
-              <option value="hybrid">
-                Hybrid
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Bio
-            </label>
-
-            <textarea
-              rows="4"
-              name="bio"
-              required
-              value={
-                formData.bio
-              }
-              onChange={
-                handleChange
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="I help with resumes, interviews, roadmap..."
-            />
-          </div>
-
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/mentorship"
-                )
-              }
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading
-                ? "Saving..."
-                : isEditMode
-                ? "Update Profile"
-                : "Join as Mentor"}
-            </button>
+          <div className="flex justify-end gap-4 mt-8">
+             <Link to="/mentorship" className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+               Cancel
+             </Link>
+             <button
+               type="submit"
+               disabled={submitLoading}
+               className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+             >
+               {submitLoading ? "Submitting..." : "Register as Mentor"}
+             </button>
           </div>
         </form>
       </div>

@@ -23,50 +23,67 @@ function App() {
   const [appState, setAppState] = useState({
     ready: false,
     dbUser: null,
-    needsOnboarding: false,
   });
 
   useEffect(() => {
     if (keycloak.authenticated) {
-      // Fetch the MongoDB profile to see if they exist and what their status is
+      // Fetch the MongoDB profile 
       api.get("/auth/me")
         .then((res) => {
-          setAppState({ ready: true, dbUser: res.data.data, needsOnboarding: false });
+          setAppState({ ready: true, dbUser: res.data.data });
         })
         .catch((err) => {
-          // If the backend says 401 or 404, it means they are new to the database!
-          if (err.response?.status === 401 || err.response?.status === 404) {
-            setAppState({ ready: true, dbUser: null, needsOnboarding: true });
-          } else {
-            setAppState({ ready: true, dbUser: null, needsOnboarding: false });
-          }
+          console.error("Failed to fetch profile", err);
+          setAppState({ ready: true, dbUser: null });
         });
     } else {
-      setAppState({ ready: true, dbUser: null, needsOnboarding: false });
+      setAppState({ ready: true, dbUser: null });
     }
   }, []);
 
-  // THE SMART ROUTER: Protects the application based on backend state
+  // THE SMART ROUTER: Strict 4-State Machine Implementation
   const ProtectedRoute = ({ children, requireAdmin }) => {
     if (!keycloak.authenticated) {
-      keycloak.login({ redirectUri: window.location.href });
+      keycloak.login({ redirectUri: window.location.origin });
       return null;
     }
     
-    // Gate 1: If they aren't in the DB yet, force them to onboarding
-    if (appState.needsOnboarding) return <Navigate to="/complete-profile" replace />;
-    
-    // Gate 2: If they are in the DB but pending (and NOT a Keycloak admin), force them to waiting room
+    if (!appState.dbUser) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-red-500 font-medium">Error loading profile state. Please refresh.</div>
+        </div>
+      );
+    }
+
     const isKeycloakAdmin = keycloak.realmAccess?.roles?.includes("admin");
-    if (!isKeycloakAdmin && appState.dbUser?.status === "pending") {
+
+    // Admin Bypass: Admins go straight through
+    if (isKeycloakAdmin) {
+      return children;
+    }
+
+    // Gate 1: Skeleton user, profile not completed -> Force to /complete-profile
+    if (appState.dbUser.profileCompleted === false) {
+      return <Navigate to="/complete-profile" replace />;
+    }
+
+    // Gate 2: Profile completed, but not yet verified -> Force to /pending-approval
+    if (appState.dbUser.profileCompleted === true && appState.dbUser.status === "pending") {
       return <Navigate to="/pending-approval" replace />;
     }
 
-    // Gate 3: Admin only routes
+    // Gate 3: Admin explicitly rejected the user -> Force to /rejected
+    if (appState.dbUser.status === "rejected") {
+      return <Navigate to="/rejected" replace />; 
+    }
+
+    // Gate 4: Admin route protection for normal users
     if (requireAdmin && !isKeycloakAdmin) {
       return <Navigate to="/" replace />;
     }
 
+    // If approved and verified, grant access to the children components
     return children;
   };
 
@@ -85,13 +102,20 @@ function App() {
         <main className="flex-grow">
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            {/* NEW: Unwrapped Home route so it is publicly accessible without auto-login */}
+            <Route path="/" element={<Home />} />
 
-            
-            {/* The Onboarding & Pending Gates */}
+            {/* The Onboarding & Pending Gates (Must NOT be wrapped in ProtectedRoute) */}
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
+            
+            <Route path="/rejected" element={
+              <div className="min-h-[70vh] flex items-center justify-center flex-col text-center px-4">
+                <h1 className="text-3xl font-bold text-red-600 mb-4">Account Rejected</h1>
+                <p className="text-gray-600">Your account was not approved by the admin team.</p>
+              </div>
+            } />
 
             {/* Standard Protected Routes (Requires Approved Status) */}
             <Route path="/events" element={<ProtectedRoute><EventList /></ProtectedRoute>} />

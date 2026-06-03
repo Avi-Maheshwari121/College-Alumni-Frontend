@@ -1,15 +1,21 @@
-import { useState } from "react";
-import keycloak from "../../services/keycloak";
+// src/pages/Auth/CompleteProfile.jsx
+import React, { useState } from "react";
 import api from "../../services/api";
+import keycloak from "../../services/keycloak";
 
-export default function CompleteProfile() {
+const CompleteProfile = () => {
   const [formData, setFormData] = useState({
-    role: "alumni",
+    role: "student", // Default value
     batch: "",
     company: "",
+    bio: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,79 +23,97 @@ export default function CompleteProfile() {
     setError("");
 
     try {
-      // 1. Grab the secure identity data directly from Keycloak's token
-      const { given_name, family_name, preferred_username, email, sub } = keycloak.tokenParsed;
-
-      // 2. Combine it with the form data and send to your backend
-      await api.post("/auth/register", {
-        firstName: given_name || "",
-        lastName: family_name || "",
-        username: preferred_username || email.split("@")[0],
-        email: email,
-        keycloakSub: sub,
-        role: formData.role,
-        batch: formData.batch,
-        company: formData.company,
-      });
-
-      // 3. Reload the app to trigger the App.jsx routing logic (moves them to Pending)
-      window.location.reload();
+      await api.post("/auth/complete-profile", formData);
+      window.location.href = "/pending-approval"; // Force direct browser redirect to avoid React Router loops
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to complete registration.");
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to complete profile");
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow border border-gray-100">
-        <h2 className="text-2xl font-bold text-center mb-2">Complete Your Profile</h2>
-        <p className="text-gray-500 text-center mb-6 text-sm">
-          Welcome, {keycloak.tokenParsed?.given_name}! We just need a few more details to set up your account.
-        </p>
+    <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Complete Your Profile</h2>
 
-        {error && <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">{error}</div>}
+        {error && <div className="mb-4 text-red-600 bg-red-50 p-3 rounded text-sm">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* NEW: Role Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">I am a...</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">I am a...</label>
             <select
+              name="role"
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border rounded-md"
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="alumni">Alumni</option>
               <option value="student">Current Student</option>
+              <option value="alumni">Alumni</option>
             </select>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">Graduation Batch (Year)</label>
-            <input
-              type="number"
-              required
-              value={formData.batch}
-              onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Current Company (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Graduation Batch</label>
             <input
               type="text"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border rounded-md"
+              name="batch"
+              required
+              placeholder="e.g., 2024"
+              value={formData.batch}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+          
+          {formData.role === 'alumni' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Company</label>
+              <input
+                type="text"
+                name="company"
+                required={formData.role === 'alumni'}
+                placeholder="Where do you work?"
+                value={formData.company}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Short Bio</label>
+            <textarea
+              name="bio"
+              rows="3"
+              placeholder="Tell us a bit about yourself..."
+              value={formData.bio}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+            ></textarea>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? "Saving..." : "Submit Profile"}
+            {loading ? "Submitting..." : "Submit Profile"}
           </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => keycloak.logout({ redirectUri: window.location.origin })}
+            className="text-sm text-gray-500 hover:text-red-600 underline"
+          >
+            Log Out / Switch Account
+          </button>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default CompleteProfile;
