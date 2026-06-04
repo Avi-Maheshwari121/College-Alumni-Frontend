@@ -1,17 +1,52 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import './index.css';
-import keycloak from './services/keycloak';
-import { FlagProvider } from '@unleash/proxy-client-react';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
+import "./index.css";
+import keycloak from "./services/keycloak.js";
+import api from "./services/api.js";
 
+const root = ReactDOM.createRoot(document.getElementById("root"));
 
-// Initialize Keycloak FIRST
-keycloak.init({
-  onLoad: 'check-sso',
-  checkLoginIframe: false 
-}).then((authenticated) => {
-  console.log("Authenticated:", authenticated);
+/**
+ * Loading Screen
+ */
+root.render(
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-lg font-medium text-gray-600">
+      Initializing Application...
+    </div>
+  </div>,
+);
+
+/**
+ * Keycloak Init
+ */
+keycloak
+  .init({
+    onLoad: "check-sso",
+    checkLoginIframe: false,
+    pkceMethod: "S256",
+    silentCheckSsoRedirectUri:
+      window.location.origin + "/silent-check-sso.html",
+  })
+  .then((authenticated) => {
+    /**
+     * Global debug access
+     */
+    window.keycloak = keycloak;
+
+    // if (authenticated) {
+    //   api
+    //     .get("/auth/me")
+    //     .then((res) => {
+    //       console.log("Mongo user synced:", res.data);
+    //     })
+    //     .catch((err) => {
+    //       console.error("Sync failed:", err);
+    //     });
+    // }
+
+    console.log("Authenticated:", authenticated);
 
   // 1. Check if the user has the admin role in Keycloak
   const isAdmin = keycloak.realmAccess?.roles?.includes("admin");
