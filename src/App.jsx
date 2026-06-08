@@ -19,30 +19,9 @@ import Login from "./pages/Auth/Login";
 import CompleteProfile from "./pages/Auth/CompleteProfile";
 import PendingApproval from "./pages/Auth/PendingApproval";
 
-function App() {
-  const [appState, setAppState] = useState({
-    ready: false,
-    dbUser: null,
-  });
 
-  useEffect(() => {
-    if (keycloak.authenticated) {
-      // Fetch the MongoDB profile 
-      api.get("/auth/me")
-        .then((res) => {
-          setAppState({ ready: true, dbUser: res.data.data });
-        })
-        .catch((err) => {
-          console.error("Failed to fetch profile", err);
-          setAppState({ ready: true, dbUser: null });
-        });
-    } else {
-      setAppState({ ready: true, dbUser: null });
-    }
-  }, []);
-
-  // THE SMART ROUTER: Strict 4-State Machine Implementation
-  const ProtectedRoute = ({ children, requireAdmin }) => {
+ // THE SMART ROUTER: Strict 4-State Machine Implementation
+  const ProtectedRoute = ({ children, requireAdmin, appState }) => {
     if (!keycloak.authenticated) {
       keycloak.login({ redirectUri: window.location.origin });
       return null;
@@ -87,6 +66,30 @@ function App() {
     return children;
   };
 
+function App() {
+  const [appState, setAppState] = useState({
+    ready: false,
+    dbUser: null,
+  });
+
+  useEffect(() => {
+    if (keycloak.authenticated) {
+      // Fetch the MongoDB profile 
+      api.get("/auth/me")
+        .then((res) => {
+          setAppState({ ready: true, dbUser: res.data.data });
+        })
+        .catch((err) => {
+          console.error("Failed to fetch profile", err);
+          setAppState({ ready: true, dbUser: null });
+        });
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAppState({ ready: true, dbUser: null });
+    }
+  }, []);
+
+
   if (!appState.ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -118,15 +121,15 @@ function App() {
             } />
 
             {/* Standard Protected Routes (Requires Approved Status) */}
-            <Route path="/events" element={<ProtectedRoute><EventList /></ProtectedRoute>} />
-            <Route path="/events/create" element={<ProtectedRoute><CreateEvent /></ProtectedRoute>} />
-            <Route path="/jobs" element={<ProtectedRoute><JobList /></ProtectedRoute>} />
-            <Route path="/jobs/create" element={<ProtectedRoute><CreateJob /></ProtectedRoute>} />
-            <Route path="/mentorship" element={<ProtectedRoute><MentorshipList /></ProtectedRoute>} />
-            <Route path="/mentorship/create" element={<ProtectedRoute><BecomeMentor /></ProtectedRoute>} />
+            <Route path="/events" element={<ProtectedRoute appState={appState} ><EventList /></ProtectedRoute>} />
+            <Route path="/events/create" element={<ProtectedRoute appState={appState}><CreateEvent /></ProtectedRoute>} />
+            <Route path="/jobs" element={<ProtectedRoute appState={appState}><JobList /></ProtectedRoute>} />
+            <Route path="/jobs/create" element={<ProtectedRoute appState={appState}><CreateJob /></ProtectedRoute>} />
+            <Route path="/mentorship" element={<ProtectedRoute appState={appState}><MentorshipList /></ProtectedRoute>} />
+            <Route path="/mentorship/create" element={<ProtectedRoute appState={appState}><BecomeMentor /></ProtectedRoute>} />
 
             {/* Admin Protected Route */}
-            <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute appState={appState} requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
 
             {/* 404 */}
             <Route path="*" element={<div className="min-h-[70vh] flex items-center justify-center text-xl font-semibold text-gray-500">404 - Page Not Found</div>} />

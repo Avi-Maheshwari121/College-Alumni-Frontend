@@ -7,6 +7,7 @@ export default function Navbar() {
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoggedIn(!!keycloak.authenticated);
 
     if (keycloak.authenticated) {

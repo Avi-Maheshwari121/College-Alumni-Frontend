@@ -84,7 +84,7 @@ api.interceptors.response.use(
       if (!isAuthMeRequest) {
         try {
           await keycloak.login();
-        } catch (err) {
+        } catch {
           console.error("Re-login failed");
         }
       } else {

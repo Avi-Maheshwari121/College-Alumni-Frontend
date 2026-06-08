@@ -1,28 +1,22 @@
-# Stage 1: Build the React application
-FROM node:20-alpine AS builder
-
+# Stage 1: Build
+# CHANGED: Upgraded from node:18-alpine to node:20-alpine to support modern Vite
+FROM node:20-alpine as builder
 WORKDIR /app
-
-# Copy dependency definitions
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
-
-# Copy the source code
 COPY . .
 
-# Build the Vite application for production
+# Crucial: Bake in the relative URLs for Istio routing
+ENV VITE_API_URL=/api/v1
 RUN npm run build
 
-# Stage 2: Serve the application using Nginx
+# Stage 2: Serve
 FROM nginx:alpine
 
-# Copy the built assets from the builder stage to Nginx's default serving directory
+# Replace the default Nginx configuration with our SPA-friendly one
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Expose port 80 for Nginx
+# Optional: Copy custom nginx.conf here if you have React Router issues
 EXPOSE 80
-
-# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]

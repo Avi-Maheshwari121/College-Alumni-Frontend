@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 import keycloak from "./services/keycloak.js";
-import api from "./services/api.js";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 

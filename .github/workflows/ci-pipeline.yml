@@ -1,0 +1,31 @@
+name: Frontend CI Quality Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main # Runs on direct pushes to main, or when PRs are merged
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Matches your Vite environment
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Enforce Code Quality (ESLint)
+        run: npm run lint
+
+      - name: Execute Unit Tests (Vitest)
+        run: npm run test
