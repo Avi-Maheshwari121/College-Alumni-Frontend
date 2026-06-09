@@ -6,36 +6,77 @@ on:
       - main
   push:
     branches:
-      - main # Runs on direct pushes to main, or when PRs are merged
+      - main
 
 jobs:
-  lint-and-test:
+  # JOB 1: LINTING (Runs immediately)
+  lint:
+    name: Code Quality (ESLint)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Matches your Vite environment
+          node-version: '20'
           cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Enforce Code Quality (ESLint)
+      - name: Run Linter
         run: npm run lint
 
-      - name: Execute Unit Tests (Vitest)
-        run: npm run test
+  # JOB 2: TESTING (Runs immediately, parallel to Linting)
+  test:
+    name: Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Generate Coverage Report
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests with Coverage
         run: npm run test -- --coverage
 
-      - name: SonarQube Scan
+      # ADVANCED DEVOPS: Save the coverage report so the next server can use it
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-coverage
+          path: coverage/
+
+  # JOB 3: SECURITY & SAST (Waits for Lint & Test to finish)
+  sonarcloud:
+    name: Security Scan (SonarCloud)
+    needs: [lint, test] # This tells GitHub NOT to run this until the other two pass
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # SonarCloud requires full git history
+
+      # ADVANCED DEVOPS: Download the coverage report from the Test server
+      - name: Download Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vitest-coverage
+          path: coverage/
+
+      - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Adds PR decoration support
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
