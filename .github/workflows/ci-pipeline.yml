@@ -29,3 +29,13 @@ jobs:
 
       - name: Execute Unit Tests (Vitest)
         run: npm run test
+
+      - name: Generate Coverage Report
+        run: npm run test -- --coverage
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Adds PR decoration support
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
