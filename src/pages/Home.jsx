@@ -17,12 +17,9 @@ export default function Home() {
         <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-4xl mb-6 shadow-sm">
           🎓
         </div>
-        <h1 className="text-5xl font-extrabold text-gray-900 mb-6 tracking-tight flex flex-wrap items-center gap-4">
-  Welcome to <span className="text-blue-600">JECRConnect</span>
-  <span className="bg-emerald-100 text-emerald-800 text-2xl font-bold px-4 py-1 rounded-full border-2 border-emerald-400 shadow-md animate-pulse">
-    v2.0 Live
-  </span>
-</h1>
+        <h1 className="text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">
+          Welcome to <span className="text-blue-600">JECRConnect</span>
+        </h1>
         <p className="text-xl text-gray-600 max-w-2xl mb-10 leading-relaxed">
           Your exclusive platform to connect with fellow alumni, find high-quality jobs, attend exclusive networking events, and mentor the next generation of students.
         </p>
